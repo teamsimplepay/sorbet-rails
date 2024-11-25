@@ -11,17 +11,10 @@ class ActiveRecordOverrides
     @enum_calls = {}
   end
 
-  def store_enum_call(klass, kwargs)
+  def store_enum_call(klass, name, values)
     class_name = klass.name
     @enum_calls[class_name] ||= {}
-    # modeling the logic in
-    # https://github.com/rails/rails/blob/master/activerecord/lib/active_record/enum.rb#L152
-    kwargs.each do |name, values|
-      next if ::ActiveRecord::Enum::SR_ENUM_KEYWORDS.include?(name)
-
-      # calling dup is required, because Rails internally mutates `kwargs` (the args you passed to `enum`)
-      @enum_calls[class_name][name] = kwargs.dup
-    end
+    @enum_calls[class_name][name] = values.dup
   end
 
   def get_enum_call(klass, enum_sym)
@@ -53,7 +46,7 @@ module ::ActiveRecord::Enum
   ]
 
   def _define_enum(name, values, **options)
-    ActiveRecordOverrides.instance.store_enum_call(self, options)
+    ActiveRecordOverrides.instance.store_enum_call(self, name, values)
     old_enum(name, values, **options)
   end
 
