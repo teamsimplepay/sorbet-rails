@@ -52,50 +52,32 @@ module ::ActiveRecord::Enum
     :_scopes
   ]
 
-  sig { params(definitions: T::Hash[Symbol, T.untyped]).void }
-  def _define_enum(definitions)
-    ActiveRecordOverrides.instance.store_enum_call(self, definitions)
-    old_enum(**definitions)
+  def _define_enum(name, values, **options)
+    ActiveRecordOverrides.instance.store_enum_call(self, options)
+    old_enum(name, values, **options)
   end
 
-  sig { params(definitions: T::Hash[Symbol, T.untyped]).void }
-  def enum(definitions)
-    _define_enum(definitions)
-    definitions.each do |enum_name, values|
-      begin
-        # skip irrelevant keywords
-        next if SR_ENUM_KEYWORDS.include?(enum_name)
-        _define_typed_enum(enum_name, extract_enum_values(values))
-      rescue ArgumentError, ConflictTypedEnumNameError, TypeError => ex
-        # known errors
-        # do nothing if we cannot define t_enum
-        puts "warning: #{ex.message}"
-      rescue => ex
-        # rescue any other kind of error to unblock the application
-        # can be disabled in development
-        puts "warning: #{ex.message}"
-        # raise ex
-      end
+  def enum(name, values, **options)
+    _define_enum(name, values, **options)
+    begin
+      _define_typed_enum(name, extract_enum_values(values))
+    rescue ArgumentError, ConflictTypedEnumNameError, TypeError => ex
+      # known errors
+      # do nothing if we cannot define t_enum
+      puts "warning: #{ex.message}"
+    rescue => ex
+      # rescue any other kind of error to unblock the application
+      # can be disabled in development
+      puts "warning: #{ex.message}"
+      # raise ex
     end
   end
 
-  sig { params(definitions: T::Hash[Symbol, T.untyped]).void }
-  def typed_enum(definitions)
-    enum_names = definitions.keys - SR_ENUM_KEYWORDS
-
-    if enum_names.size != 1
-      raise MultipleEnumsDefinedError.new(
-        "typed_enum only supports 1 enum defined at a time,
-        given #{enum_names.count}: #{enum_names.join(', ')}".squish!
-      )
-    end
-
-    enum_name = enum_names[0]
-
-    _define_enum(definitions)
+  def typed_enum(name, values, **options)
+    _define_enum(name, values, **options)
     _define_typed_enum(
-      T.must(enum_name),
-      extract_enum_values(definitions[enum_name]),
+      T.must(name),
+      extract_enum_values(values),
       strict_mode: true,
     )
   end
