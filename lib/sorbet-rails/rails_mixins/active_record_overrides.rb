@@ -47,7 +47,11 @@ module ::ActiveRecord::Enum
 
   def _define_enum(name, values, **options)
     ActiveRecordOverrides.instance.store_enum_call(self, name, values)
-    old_enum(name, values, **options)
+    if Rails::VERSION::MAJOR < 7
+      old_enum({ name => values }.merge(options))
+    else
+      old_enum(name, values, **options)
+    end
   end
 
   def enum(name, values, **options)
